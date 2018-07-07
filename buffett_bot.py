@@ -4,7 +4,7 @@ from pprint import pprint
 import discord
 from discord.ext import commands
 from alpha_vantage.timeseries import TimeSeries
-import matplotlib.pyplot as plt
+import matplotlib
 
 matplotlib.use('Agg')
 
@@ -33,16 +33,16 @@ async def plot_today(ctx, symbol: str):
     ts_pandas = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'], output_format='pandas')
     data, meta_data = ts_pandas.get_intraday(symbol=symbol,interval='1min', outputsize='full')
     data['4. close'].plot()
-    plt.title('Intraday Times Series for {} (1 min interval)'.format(symbol))
+    matplotlib.pyplot.title('Intraday Times Series for {} (1 min interval)'.format(symbol))
 
     if (os.path.exists('output.png')):
         print('Removing output.png')
         os.remove('output.png')
 
-    plt.savefig('output.png')
+    matplotlib.pyplot.savefig('output.png')
     with open('output.png', 'rb') as f:
         await bot.upload(f)
-    plt.clf()
+    matplotlib.pyplot.clf()
     
 
 # Turns the raw JSON price data into a nicely formatted string
