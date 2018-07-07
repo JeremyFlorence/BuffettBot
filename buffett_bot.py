@@ -4,9 +4,9 @@ from pprint import pprint
 import discord
 from discord.ext import commands
 from alpha_vantage.timeseries import TimeSeries
+import matplotlib.pyplot as plt
 
-bot = commands.Bot(command_prefix='$')
-ts = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'])
+bot = commands.Bot(command_prefix='$') 
 
 @bot.event
 async def on_ready():
@@ -25,14 +25,32 @@ async def current_price(ctx, symbol_input: str):
     print(output)
     await bot.say(output)
 
+# Command to plot current day price data at an interval of 1min
+@bot.command(pass_context=True)
+async def plot_today(ctx, symbol: str):
+    ts_pandas = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'], output_format='pandas')
+    data, meta_data = ts_pandas.get_intraday(symbol=symbol,interval='1min', outputsize='full')
+    data['4. close'].plot()
+    plt.title('Intraday Times Series for {} (1 min interval)'.format(symbol))
+
+    if (os.path.exists('output.png')):
+        print('Removing output.png')
+        os.remove('output.png')
+
+    plt.savefig('output.png')
+    with open('output.png', 'rb') as f:
+        await bot.upload(f)
+    plt.clf()
+    
+
 # Turns the raw JSON price data into a nicely formatted string
 # symbol: The stock symbol
 # date: date/time of the data point
 # json_data: Price data in JSON format
 def get_nice_output(symbol, date, json_data):
-    output = "[{}]: {} \n".format(date, symbol)
+    output = "[{}]: {} \n".format(date, symbol) # Metadata
 
-    # Print each JSON key/value pair on a line. Format the value as USD
+    # Put each JSON key/value pair on a line. Format the value as USD
     # unless it is the stock's volume.
     for key in json_data.keys():
         output += "{}: ".format(key)
@@ -42,4 +60,19 @@ def get_nice_output(symbol, date, json_data):
             output += "{}".format(json_data[key])
     return output
 
-bot.run(os.environ['DISCORD_TOKEN'])
+def is_prod():
+    if 'DISCORD_TOKEN' in os.environ:
+        return True
+    else:
+        return False
+
+
+
+ts = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'])
+discord_token = ''
+if (is_prod()):
+    discord_token = os.environ['DISCORD_TOKEN']
+else:
+    discord_token = os.environ['DISCORD_TOKEN_DEV']
+
+bot.run(discord_token)
