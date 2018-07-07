@@ -6,6 +6,8 @@ from discord.ext import commands
 from alpha_vantage.timeseries import TimeSeries
 import matplotlib.pyplot as plt
 
+matplotlib.use('Agg')
+
 bot = commands.Bot(command_prefix='$') 
 
 @bot.event
