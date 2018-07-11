@@ -1,12 +1,13 @@
 import os
 import asyncio
+from datetime import date
 from pprint import pprint
 import discord
 from discord.ext import commands
 from alpha_vantage.timeseries import TimeSeries
 import matplotlib
-
-matplotlib.use('Agg')
+matplotlib.use('Agg')   # We have to use Agg backend for Heroku
+from matplotlib import pyplot as plt
 
 bot = commands.Bot(command_prefix='$') 
 
@@ -31,18 +32,26 @@ async def current_price(ctx, symbol_input: str):
 @bot.command(pass_context=True)
 async def plot_today(ctx, symbol: str):
     ts_pandas = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'], output_format='pandas')
-    data, meta_data = ts_pandas.get_intraday(symbol=symbol,interval='1min', outputsize='full')
-    data['4. close'].plot()
-    matplotlib.pyplot.title('Intraday Times Series for {} (1 min interval)'.format(symbol))
+    data, meta_data = ts_pandas.get_intraday(symbol=symbol,interval='5min', outputsize='full')
+    filtered_data = []
+    filtered_times = []
+
+    for time in data['4. close'].keys():
+        if str(date.today()) in time:
+            filtered_times.append(time)
+            filtered_data.append(data['4. close'][time])
+
+    plt.plot(filtered_times, filtered_data)
+    plt.title('Intraday Times Series for {} (5 min interval)'.format(symbol))
 
     if (os.path.exists('output.png')):
         print('Removing output.png')
         os.remove('output.png')
 
-    matplotlib.pyplot.savefig('output.png')
+    plt.savefig('output.png')
     with open('output.png', 'rb') as f:
         await bot.upload(f)
-    matplotlib.pyplot.clf()
+    plt.clf()
     
 
 # Turns the raw JSON price data into a nicely formatted string
