@@ -38,11 +38,18 @@ async def plot_today(ctx, symbol: str):
 
     for time in data['4. close'].keys():
         if str(date.today()) in time:
-            filtered_times.append(time)
+            filtered_times.append(time.replace(str(date.today()), ''))
             filtered_data.append(data['4. close'][time])
 
-    plt.plot(filtered_times, filtered_data)
-    plt.title('Intraday Times Series for {} (5 min interval)'.format(symbol))
+    fig, ax = plt.subplots()
+    ax.plot(filtered_times, filtered_data)
+    plt.title('Intraday Times Series for {} (5 min interval) on {}'.format(symbol, str(date.today())))
+    
+    plt.xticks(filtered_times, filtered_times, fontsize=6, rotation='45', ha='right')
+    
+    # we want to hide every other label
+    for label in ax.xaxis.get_ticklabels()[1::2]:
+        label.set_visible(False)
 
     if (os.path.exists('output.png')):
         print('Removing output.png')
