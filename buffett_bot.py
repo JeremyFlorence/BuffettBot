@@ -5,6 +5,7 @@ from pprint import pprint
 import discord
 from discord.ext import commands
 from alpha_vantage.timeseries import TimeSeries
+from alpha_vantage.cryptocurrencies import CryptoCurrencies
 import matplotlib
 matplotlib.use('Agg')   # We have to use Agg backend for Heroku
 from matplotlib import pyplot as plt
@@ -21,6 +22,7 @@ async def on_ready():
 # Command to see the most recent price data of a stock
 @bot.command(pass_context=True)
 async def current_price(ctx, symbol_input: str):
+    ts = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'])
     data = ts.get_intraday(symbol=symbol_input, interval='1min', outputsize='compact')
     current_time = max(data[0].keys())
     most_recent_entry = data[0][current_time]
@@ -59,6 +61,21 @@ async def plot_today(ctx, symbol: str):
     with open('output.png', 'rb') as f:
         await bot.upload(f)
     plt.clf()
+
+
+# Command to get current price of a cryptocurrency given a ticker symbol
+@bot.command(pass_context=True)
+async def crypto_current_price(ctx, symbol: str, market: str):
+    cc = CryptoCurrencies(key=os.environ['ALPHA_VANTAGE_API_KEY'])
+    data = cc.get_digital_currency_intraday(symbol = symbol, market = market)
+    current_time = max(data[0].keys())
+    most_recent_entry = data[0][current_time]
+    output_header = "{} ({})".format(symbol, market)
+    output = get_nice_output(output_header, current_time, most_recent_entry)
+    print(output)
+    await bot.say(output)
+
+
     
 
 # Turns the raw JSON price data into a nicely formatted string
@@ -86,7 +103,6 @@ def is_prod():
 
 
 
-ts = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'])
 discord_token = ''
 if (is_prod()):
     discord_token = os.environ['DISCORD_TOKEN']
