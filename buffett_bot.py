@@ -95,18 +95,6 @@ def get_nice_output(symbol, date, json_data):
             output += "{}".format(json_data[key])
     return output
 
-def is_prod():
-    if 'DISCORD_TOKEN' in os.environ:
-        return True
-    else:
-        return False
-
-
-
-discord_token = ''
-if (is_prod()):
-    discord_token = os.environ['DISCORD_TOKEN']
-else:
-    discord_token = os.environ['DISCORD_TOKEN_DEV']
+discord_token = os.environ['DISCORD_TOKEN']
 
 bot.run(discord_token)
