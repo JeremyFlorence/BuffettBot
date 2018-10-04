@@ -106,5 +106,7 @@ venv.bak/
 #vscode
 .vscode/
 
+.idea/
+
 #image output
 output.png
