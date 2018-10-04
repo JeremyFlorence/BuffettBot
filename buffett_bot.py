@@ -10,7 +10,8 @@ import matplotlib
 matplotlib.use('Agg')   # We have to use Agg backend for Heroku
 from matplotlib import pyplot as plt
 
-bot = commands.Bot(command_prefix='$') 
+bot = commands.Bot(command_prefix='$')
+
 
 @bot.event
 async def on_ready():
@@ -18,6 +19,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
+
 
 # Command to see the most recent price data of a stock
 @bot.command(pass_context=True)
@@ -30,11 +32,12 @@ async def current_price(ctx, symbol_input: str):
     print(output)
     await bot.say(output)
 
+
 # Command to plot current day price data at an interval of 1min
 @bot.command(pass_context=True)
 async def plot_today(ctx, symbol: str):
     ts_pandas = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'], output_format='pandas')
-    data, meta_data = ts_pandas.get_intraday(symbol=symbol,interval='5min', outputsize='full')
+    data, meta_data = ts_pandas.get_intraday(symbol=symbol, interval='5min', outputsize='full')
     filtered_data = []
     filtered_times = []
 
@@ -53,7 +56,7 @@ async def plot_today(ctx, symbol: str):
     for label in ax.xaxis.get_ticklabels()[1::2]:
         label.set_visible(False)
 
-    if (os.path.exists('output.png')):
+    if os.path.exists('output.png'):
         print('Removing output.png')
         os.remove('output.png')
 
@@ -76,8 +79,6 @@ async def crypto_current_price(ctx, symbol: str, market: str):
     await bot.say(output)
 
 
-    
-
 # Turns the raw JSON price data into a nicely formatted string
 # symbol: The stock symbol
 # date: date/time of the data point
@@ -89,11 +90,12 @@ def get_nice_output(symbol, date, json_data):
     # unless it is the stock's volume.
     for key in json_data.keys():
         output += "{}: ".format(key)
-        if (key != "5. volume"):
+        if key != "5. volume":
             output += "${:,.2f} \n".format(float(json_data[key]))
         else:
             output += "{}".format(json_data[key])
     return output
+
 
 discord_token = os.environ['DISCORD_TOKEN']
 
