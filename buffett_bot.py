@@ -1,8 +1,5 @@
 import os
-import asyncio
 from datetime import date
-from pprint import pprint
-import discord
 from discord.ext import commands
 from alpha_vantage.timeseries import TimeSeries
 from alpha_vantage.cryptocurrencies import CryptoCurrencies
