@@ -67,7 +67,7 @@ async def plot_today(ctx, symbol: str):
 @bot.command(pass_context=True)
 async def crypto_current_price(ctx, symbol: str, market: str):
     cc = CryptoCurrencies(key=os.environ['ALPHA_VANTAGE_API_KEY'])
-    data = cc.get_digital_currency_intraday(symbol = symbol, market = market)
+    data = cc.get_digital_currency_intraday(symbol=symbol, market=market)
     current_time = max(data[0].keys())
     most_recent_entry = data[0][current_time]
     output_header = "{} ({})".format(symbol, market)
@@ -81,7 +81,7 @@ async def crypto_current_price(ctx, symbol: str, market: str):
 # date: date/time of the data point
 # json_data: Price data in JSON format
 def get_nice_output(symbol, date, json_data):
-    output = "[{}]: {} \n".format(date, symbol) # Metadata
+    output = "[{}]: {} \n".format(date, symbol)  # Metadata
 
     # Put each JSON key/value pair on a line. Format the value as USD
     # unless it is the stock's volume.
@@ -95,5 +95,4 @@ def get_nice_output(symbol, date, json_data):
 
 
 discord_token = os.environ['DISCORD_TOKEN']
-
 bot.run(discord_token)
