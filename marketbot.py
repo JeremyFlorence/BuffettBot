@@ -1,5 +1,6 @@
 import os
-from datetime import date
+from datetime import date, datetime
+from dateutil import relativedelta
 from discord.ext import commands
 from alpha_vantage.timeseries import TimeSeries
 from alpha_vantage.cryptocurrencies import CryptoCurrencies
@@ -63,6 +64,25 @@ async def plot_today(ctx, symbol: str):
     plt.clf()
 
 
+@bot.command(pass_context=True)
+async def plot_range(ctx, symbol: str, start: str, end: str):
+    start_datetime = datetime.strptime(start, '%m/%d/%Y')
+    end_datetime = datetime.strptime(end, '%m/%d/%Y')
+
+    if start_datetime > end_datetime:
+        await bot.say("Error: Start date is after end date!")
+        return
+
+    ts_pandas = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'], output_format='pandas')
+    interval = get_interval(start_datetime, end_datetime)
+
+    if not interval:
+        await bot.say('Please enter a valid start and end date.')
+        return
+
+    await bot.say('Interval: {}'.format(interval))
+
+
 # Command to get current price of a cryptocurrency given a ticker symbol
 @bot.command(pass_context=True)
 async def crypto_current_price(ctx, symbol: str, market: str):
@@ -74,6 +94,25 @@ async def crypto_current_price(ctx, symbol: str, market: str):
     output = get_nice_output(output_header, current_time, most_recent_entry)
     print(output)
     await bot.say(output)
+
+
+# Gets a data interval to ensure charts for large date ranges aren't too crowded
+# start_date: start date in the range
+# end_date: end date in the range
+def get_interval(start_date, end_date):
+    rdelta = relativedelta.relativedelta(end_date, start_date)
+    print(rdelta.years)
+    interval = ""
+    if rdelta.years > 2:
+        interval = "weekly"
+    elif rdelta.months > 1:
+        interval = "daily"
+    elif rdelta.days > 5:
+        interval = "60min"
+    else:
+        interval = "30min"
+
+    return interval
 
 
 # Turns the raw JSON price data into a nicely formatted string
