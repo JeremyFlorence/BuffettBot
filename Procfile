@@ -1,1 +1,1 @@
-worker: python3 buffett_bot.py
+worker: python3 marketbot.py
