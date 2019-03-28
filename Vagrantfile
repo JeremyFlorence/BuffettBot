@@ -74,9 +74,9 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: <<-SHELL
     add-apt-repository ppa:deadsnakes/ppa
     apt-get update
-    apt-get install -y python3.7 python3.7-venv
+    apt-get install -y python3.6 python3.6-venv
     ln -s /vagrant/ /home/vagrant/project
-    python3.7 -m venv /home/vagrant/venv
+    python3.6 -m venv /home/vagrant/venv
     source /home/vagrant/venv/bin/activate
     pip install --upgrade pip
     if [ -f /home/vagrant/project/requirements.txt ]; then
