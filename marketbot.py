@@ -66,21 +66,63 @@ async def plot_today(ctx, symbol: str):
 
 @bot.command(pass_context=True)
 async def plot_range(ctx, symbol: str, start: str, end: str):
-    start_datetime = datetime.strptime(start, '%m/%d/%Y')
-    end_datetime = datetime.strptime(end, '%m/%d/%Y')
+    start_datetime = datetime.strptime(start, '%m-%d-%Y')
+    end_datetime = datetime.strptime(end, '%m-%d-%Y')
+    filtered_data = []
+    filtered_datetimes = []
 
     if start_datetime > end_datetime:
         await bot.say("Error: Start date is after end date!")
         return
 
+    rdelta = relativedelta.relativedelta(end_datetime, start_datetime)
     ts_pandas = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'], output_format='pandas')
-    interval = get_interval(start_datetime, end_datetime)
 
-    if not interval:
-        await bot.say('Please enter a valid start and end date.')
-        return
+    try:
+        if rdelta.years > 2:
+            interval = "weekly"
+            data, metadata = ts_pandas.get_weekly(symbol=symbol)
+        elif rdelta.months > 1:
+            interval = "daily"
+            data, metadata = ts_pandas.get_daily(symbol=symbol, outputsize='full')
+        elif rdelta.days > 5:
+            interval = "60min"
+            data, metadata = ts_pandas.get_intraday(symbol=symbol, interval='60min', outputsize='full')
+        else:
+            interval = "30min"
+            data, metadata = ts_pandas.get_intraday(symbol=symbol, interval='30min', outputsize='full')
+    except ValueError:
+        await bot.say("There was an error retrieving the data for this range. "
+                      "Please make sure you're using valid arguments and try again")
+    
+    for datapoint_datestr in data['4. close'].keys():
+        datapoint_datetime = datetime.strptime(datapoint_datestr, '%Y-%m-%d')
+        
+        if start_datetime <= datapoint_datetime <= end_datetime:
+            filtered_datetimes.append(datapoint_datestr)
+            filtered_data.append(data['4. close'][datapoint_datestr])
+            print(data['4. close'][datapoint_datestr])
 
-    await bot.say('Interval: {}'.format(interval))
+    fig, ax = plt.subplots()
+    ax.plot(filtered_datetimes, filtered_data)
+    plt.title('Time Series for {} on {} - {}'.format(symbol,
+                                                     datetime.strftime(start_datetime, '%m-%d-%Y'),
+                                                     datetime.strftime(end_datetime, '%m-%d-%Y')))
+
+    plt.xticks(filtered_datetimes, filtered_datetimes, fontsize=6, rotation='45', ha='right')
+
+    # we want to hide every other label
+    for label in ax.xaxis.get_ticklabels()[1::2]:
+        label.set_visible(False)
+
+    if os.path.exists('output.png'):
+        print('Removing output.png')
+        os.remove('output.png')
+
+    plt.savefig('output.png')
+    with open('output.png', 'rb') as f:
+        await bot.upload(f)
+    plt.clf()
 
 
 # Command to get current price of a cryptocurrency given a ticker symbol
@@ -94,25 +136,6 @@ async def crypto_current_price(ctx, symbol: str, market: str):
     output = get_nice_output(output_header, current_time, most_recent_entry)
     print(output)
     await bot.say(output)
-
-
-# Gets a data interval to ensure charts for large date ranges aren't too crowded
-# start_date: start date in the range
-# end_date: end date in the range
-def get_interval(start_date, end_date):
-    rdelta = relativedelta.relativedelta(end_date, start_date)
-    print(rdelta.years)
-    interval = ""
-    if rdelta.years > 2:
-        interval = "weekly"
-    elif rdelta.months > 1:
-        interval = "daily"
-    elif rdelta.days > 5:
-        interval = "60min"
-    else:
-        interval = "30min"
-
-    return interval
 
 
 # Turns the raw JSON price data into a nicely formatted string
