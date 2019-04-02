@@ -88,7 +88,7 @@ async def plot_range(ctx, symbol: str, start: str, end: str):
             date_format = "%Y-%m-%d"
             data, metadata = ts_pandas.get_weekly(symbol=symbol)
 
-        elif rdelta.months >= 1:
+        elif rdelta.months >= 1 or rdelta.years >= 1:
             interval = "daily"
             date_format = "%Y-%m-%d"
             data, metadata = ts_pandas.get_daily(symbol=symbol, outputsize='full')
