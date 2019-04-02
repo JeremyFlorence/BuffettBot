@@ -77,39 +77,51 @@ async def plot_range(ctx, symbol: str, start: str, end: str):
 
     rdelta = relativedelta.relativedelta(end_datetime, start_datetime)
     ts_pandas = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'], output_format='pandas')
+    print('Years: ' + str(rdelta.years) + '\n' 
+          'Months: ' + str(rdelta.months) + '\n'
+          'Days: ' + str(rdelta.days)
+          )
 
     try:
-        if rdelta.years > 2:
+        if rdelta.years >= 2:
             interval = "weekly"
+            date_format = "%Y-%m-%d"
             data, metadata = ts_pandas.get_weekly(symbol=symbol)
-        elif rdelta.months > 1:
+
+        elif rdelta.months >= 1:
             interval = "daily"
+            date_format = "%Y-%m-%d"
             data, metadata = ts_pandas.get_daily(symbol=symbol, outputsize='full')
-        elif rdelta.days > 5:
+
+        elif rdelta.days >= 5:
             interval = "60min"
+            date_format = "%Y-%m-%d %H:%M:%S"
             data, metadata = ts_pandas.get_intraday(symbol=symbol, interval='60min', outputsize='full')
+
         else:
             interval = "30min"
             data, metadata = ts_pandas.get_intraday(symbol=symbol, interval='30min', outputsize='full')
+            date_format = "%Y-%m-%d %H:%M:%S"
+
     except ValueError:
         await bot.say("There was an error retrieving the data for this range. "
                       "Please make sure you're using valid arguments and try again")
     
     for datapoint_datestr in data['4. close'].keys():
-        datapoint_datetime = datetime.strptime(datapoint_datestr, '%Y-%m-%d')
+        datapoint_datetime = datetime.strptime(datapoint_datestr, date_format)
         
         if start_datetime <= datapoint_datetime <= end_datetime:
             filtered_datetimes.append(datapoint_datestr)
             filtered_data.append(data['4. close'][datapoint_datestr])
-            print(data['4. close'][datapoint_datestr])
 
+    print(len(filtered_datetimes))
     fig, ax = plt.subplots()
     ax.plot(filtered_datetimes, filtered_data)
     plt.title('Time Series for {} on {} - {}'.format(symbol,
                                                      datetime.strftime(start_datetime, '%m-%d-%Y'),
                                                      datetime.strftime(end_datetime, '%m-%d-%Y')))
 
-    plt.xticks(filtered_datetimes, filtered_datetimes, fontsize=6, rotation='45', ha='right')
+    plt.xticks(range(len(filtered_datetimes)), filtered_datetimes, fontsize=6, rotation='45', ha='right')
 
     # we want to hide every other label
     for label in ax.xaxis.get_ticklabels()[1::2]:
