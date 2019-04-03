@@ -19,6 +19,16 @@ async def on_ready():
     print('------')
 
 
+@bot.event
+async def on_command_error(error, ctx):
+    if isinstance(error, commands.CommandInvokeError):
+        await bot.send_message(
+                            ctx.message.channel,
+                            "There was an error retrieving the data for this range. "
+                            "Please make sure you're using valid arguments and try again"
+                            )
+
+
 # Command to see the most recent price data of a stock
 @bot.command(pass_context=True)
 async def current_price(ctx, symbol_input: str):
@@ -82,31 +92,26 @@ async def plot_range(ctx, symbol: str, start: str, end: str):
           'Days: ' + str(rdelta.days)
           )
 
-    try:
-        if rdelta.years >= 2:
-            interval = "weekly"
-            date_format = "%Y-%m-%d"
-            data, metadata = ts_pandas.get_weekly(symbol=symbol)
+    if rdelta.years >= 2:
+        interval = "weekly"
+        date_format = "%Y-%m-%d"
+        data, metadata = ts_pandas.get_weekly(symbol=symbol)
 
-        elif rdelta.months >= 1 or rdelta.years >= 1:
-            interval = "daily"
-            date_format = "%Y-%m-%d"
-            data, metadata = ts_pandas.get_daily(symbol=symbol, outputsize='full')
+    elif rdelta.months >= 1 or rdelta.years >= 1:
+        interval = "daily"
+        date_format = "%Y-%m-%d"
+        data, metadata = ts_pandas.get_daily(symbol=symbol, outputsize='full')
 
-        elif rdelta.days >= 5:
-            interval = "60min"
-            date_format = "%Y-%m-%d %H:%M:%S"
-            data, metadata = ts_pandas.get_intraday(symbol=symbol, interval='60min', outputsize='full')
+    elif rdelta.days >= 5:
+        interval = "60min"
+        date_format = "%Y-%m-%d %H:%M:%S"
+        data, metadata = ts_pandas.get_intraday(symbol=symbol, interval='60min', outputsize='full')
 
-        else:
-            interval = "30min"
-            data, metadata = ts_pandas.get_intraday(symbol=symbol, interval='30min', outputsize='full')
-            date_format = "%Y-%m-%d %H:%M:%S"
+    else:
+        interval = "30min"
+        data, metadata = ts_pandas.get_intraday(symbol=symbol, interval='30min', outputsize='full')
+        date_format = "%Y-%m-%d %H:%M:%S"
 
-    except ValueError:
-        await bot.say("There was an error retrieving the data for this range. "
-                      "Please make sure you're using valid arguments and try again")
-    
     for datapoint_datestr in data['4. close'].keys():
         datapoint_datetime = datetime.strptime(datapoint_datestr, date_format)
         
@@ -114,14 +119,22 @@ async def plot_range(ctx, symbol: str, start: str, end: str):
             filtered_datetimes.append(datapoint_datestr)
             filtered_data.append(data['4. close'][datapoint_datestr])
 
-    print(len(filtered_datetimes))
+    if len(filtered_data) == 0:
+        await bot.say("Oops! It looks like I don't have enough data to plot {} in this range. "
+                      " Try using a larger range or choosing a date range that is more recent.".format(symbol))
+        return
+
     fig, ax = plt.subplots()
     ax.plot(filtered_datetimes, filtered_data)
     plt.title('Time Series for {} on {} - {}'.format(symbol,
                                                      datetime.strftime(start_datetime, '%m-%d-%Y'),
                                                      datetime.strftime(end_datetime, '%m-%d-%Y')))
+    if len(filtered_datetimes) > 21:
+        xlabels = shrink_list(filtered_datetimes, 21)
+    else:
+        xlabels = filtered_datetimes
 
-    plt.xticks(range(len(filtered_datetimes)), filtered_datetimes, fontsize=6, rotation='45', ha='right')
+    plt.xticks(xlabels, xlabels, fontsize=6, rotation='45', ha='right')
 
     # we want to hide every other label
     for label in ax.xaxis.get_ticklabels()[1::2]:
@@ -148,6 +161,16 @@ async def crypto_current_price(ctx, symbol: str, market: str):
     output = get_nice_output(output_header, current_time, most_recent_entry)
     print(output)
     await bot.say(output)
+
+
+def shrink_list(list_to_shrink, target_len):
+    shrunken_list = []
+    n = int(len(list_to_shrink)/target_len)
+
+    for x in list_to_shrink[0::n]:
+        shrunken_list.append(x)
+
+    return shrunken_list
 
 
 # Turns the raw JSON price data into a nicely formatted string
