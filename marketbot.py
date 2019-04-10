@@ -22,23 +22,21 @@ async def on_ready():
 @bot.event
 async def on_command_error(error, ctx):
     if isinstance(error, commands.CommandInvokeError):
+        print(error)
         await bot.send_message(
                             ctx.message.channel,
-                            "There was an error retrieving the data for this range. "
+                            "There was an error retrieving the data for this request."
                             "Please make sure you're using valid arguments and try again"
                             )
 
-
-# Command to see the most recent price data of a stock
 @bot.command(pass_context=True)
-async def current_price(ctx, symbol_input: str):
+async def price(ctx, *symbols: str):
+    output_msg = ""
     ts = TimeSeries(key=os.environ['ALPHA_VANTAGE_API_KEY'])
-    data = ts.get_intraday(symbol=symbol_input, interval='1min', outputsize='compact')
-    current_time = max(data[0].keys())
-    most_recent_entry = data[0][current_time]
-    output = get_nice_output(symbol_input, current_time, most_recent_entry)
-    print(output)
-    await bot.say(output)
+    data = ts.get_batch_stock_quotes(symbols)[0]
+    for quote in data:
+        output_msg += get_formatted_data(quote) + "\n"
+    await bot.say(output_msg)
 
 
 # Command to plot current day price data at an interval of 1min
@@ -173,21 +171,16 @@ def shrink_list(list_to_shrink, target_len):
     return shrunken_list
 
 
-# Turns the raw JSON price data into a nicely formatted string
-# symbol: The stock symbol
-# date: date/time of the data point
-# json_data: Price data in JSON format
-def get_nice_output(symbol, date, json_data):
-    output = "[{}]: {} \n".format(date, symbol)  # Metadata
+def get_formatted_data(data):
+    output = ""
 
-    # Put each JSON key/value pair on a line. Format the value as USD
-    # unless it is the stock's volume.
-    for key in json_data.keys():
+    for key in data.keys():
         output += "{}: ".format(key)
-        if key != "5. volume":
-            output += "${:,.2f} \n".format(float(json_data[key]))
+        if key == "2. price":
+            output += "${:,.2f} \n".format(float(data[key]))
         else:
-            output += "{}".format(json_data[key])
+            output += "{} \n".format(data[key])
+
     return output
 
 
