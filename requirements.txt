@@ -1,5 +1,5 @@
 aiohttp==1.0.5
-alpha-vantage
+alpha-vantage==2.1.0
 async-timeout==3.0.0
 certifi==2018.4.16
 chardet==3.0.4
@@ -15,8 +15,8 @@ pandas==0.23.2
 pyparsing==2.2.0
 python-dateutil==2.7.3
 pytz==2018.5
-requests
+requests==2.21.0
 simplejson==3.16.0
 six==1.11.0
-urllib3==1.23
+urllib3==1.24.2
 websockets==3.4
